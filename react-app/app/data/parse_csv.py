@@ -1,9 +1,9 @@
 import pandas as pd
 import json
-
+import numpy as np
 
 def parse_bright_star_catalog(
-    output_path= "stars.json"
+    output_path= "stars.json", max_magnitude = 5.0
 ):
     df = pd.read_csv('./yale_bright_star_catalog_v5.csv')
     stars = []
@@ -12,6 +12,14 @@ def parse_bright_star_catalog(
         # Skip rows with missing HR or RA/Dec
         if any(pd.isna(row.get(col)) for col in ["RAh", "RAm", "RAs", "DE-", "DEd", "DEm", "DEs"]):
             continue
+
+        # Visual magnitude -- smaller = brighter
+        magnitude = row["Vmag"]
+        if pd.isna(magnitude):
+            continue
+        if magnitude > max_magnitude: # remove stars dimmer than max_magnitude
+            continue
+
         # Right ascension J2000 to decimal degrees
         ra_h = row["RAh"]
         ra_m = row["RAm"]
@@ -25,12 +33,23 @@ def parse_bright_star_catalog(
         dec_s = row["DEs"]
         dec_deg = dec_sign * (abs(dec_d) + dec_m / 60 + dec_s / 3600)
 
+        # Declination to latitude
+        # Right ascension to longitude
+        # https://math.stackexchange.com/questions/15323/how-do-i-calculate-the-cartesian-coordinates-of-stars
+
+        ra_rad = np.deg2rad(ra_deg)
+        dec_rad = np.deg2rad(dec_deg)
+        x = np.cos(dec_rad) * np.cos(ra_rad)
+        y = np.cos(dec_rad) * np.sin(ra_rad)
+
         star = {
             "id": int(row["HR"]), # Harvard Revised number
             "name": str(row["Name"]) if not pd.isna(row["Name"]) else "",
             "ra": ra_deg, # Right Ascension (degrees)
             "dec": dec_deg,  # Declination (degrees)
-            "mag": float(row["Vmag"]) if not pd.isna(row["Vmag"]) else None,  # Visual magnitude
+            "lon": x,
+            "lat": y,
+            "mag": magnitude,
             "spectral": str(row.get("SpType", "")).strip() #Spectral type
         }
 

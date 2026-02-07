@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 
-export const StarCanvas = ({ stars, width = 1500, height = 1000 }) => {
+import { getStarSize } from "../../shared/utils/StarSize";
+import { getSpectralClass } from "../../shared/utils/SpectralClass";
+
+export const StarCanvas = ({ stars, width = 1000, height = 1000 }) => {
   const canvasRef = useRef();
   const [hoveredStar, setHoveredStar] = useState(null);
 
@@ -10,14 +13,17 @@ export const StarCanvas = ({ stars, width = 1500, height = 1000 }) => {
 
     const draw = () => {
       ctx.clearRect(0, 0, width, height);
+      const cx = width / 2;
+      const cy = height / 2;
+      const scale = Math.min(width, height) / 2;
 
       stars.forEach((star) => {
-        const x = (star.ra / 360) * width;
-        const y = ((90 - star.dec) / 180) * height;
-        // const size = Math.max(0.5, 6 - star.mag);
-        const size = Math.max(0, 5 - (star.mag / 6) * 4);
+        const x = cx + star.lon * scale;
+        const y = cy - star.lat * scale;
+        const size = getStarSize(star.mag);
 
-        ctx.fillStyle = star === hoveredStar ? "yellow" : "white";
+        ctx.fillStyle =
+          star === hoveredStar ? "yellow" : getSpectralClass(star.spectral);
         ctx.beginPath();
         ctx.arc(x, y, size, 0, Math.PI * 2);
         ctx.fill();
